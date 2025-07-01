@@ -1,6 +1,7 @@
 ## NEXT
 
 - Fixes PlatformException in example app for Android 14 (API level 34) versions and newer by updating manifest permissions.
+- Prevented crash by checking `isSuccessful` before calling `getResult()` in location settings check.
 
 ## 5.0.1+1
 
