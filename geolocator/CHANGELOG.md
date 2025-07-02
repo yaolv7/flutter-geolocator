@@ -1,6 +1,7 @@
-## NEXT
+## 14.0.2
 
 - Adds section about `UIBackgroundModes` to the README. 
+- Adds Linux as a supported platform to pubspec. 
 
 ## 14.0.1
 
