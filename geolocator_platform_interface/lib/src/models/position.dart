@@ -19,6 +19,13 @@ class Position {
     required this.speedAccuracy,
     this.floor,
     this.isMocked = false,
+    this.hasAccuracy = false,
+    this.hasAltitude = false,
+    this.hasAltitudeAccuracy = false,
+    this.hasHeading = false,
+    this.hasHeadingAccuracy = false,
+    this.hasSpeed = false,
+    this.hasSpeedAccuracy = false,
   });
 
   /// The latitude of this position in degrees normalized to the interval -90.0
@@ -102,6 +109,53 @@ class Position {
   /// When not available the default value is false.
   final bool isMocked;
 
+  /// Whether the platform actually reported [accuracy].
+  ///
+  /// When this is `false`, [accuracy] carries no measurement: the platform
+  /// could not determine it and `0.0` is a placeholder, not zero metres of
+  /// error. Filtering on `accuracy` without checking this treats an unmeasured
+  /// position as a perfectly accurate one.
+  ///
+  /// On Android this mirrors `Location.hasAccuracy()`.
+  final bool hasAccuracy;
+
+  /// Whether the platform actually reported [altitude].
+  ///
+  /// When `false`, [altitude] is `0.0` as a placeholder. Mirrors
+  /// `Location.hasAltitude()` on Android.
+  final bool hasAltitude;
+
+  /// Whether the platform actually reported [altitudeAccuracy].
+  ///
+  /// When `false`, [altitudeAccuracy] is `0.0` as a placeholder. Mirrors
+  /// `Location.hasVerticalAccuracy()` on Android (API 26+).
+  final bool hasAltitudeAccuracy;
+
+  /// Whether the platform actually reported [heading].
+  ///
+  /// When `false`, [heading] is `0.0` as a placeholder — which is also a valid
+  /// course of due north, so the two are otherwise indistinguishable. Mirrors
+  /// `Location.hasBearing()` on Android.
+  final bool hasHeading;
+
+  /// Whether the platform actually reported [headingAccuracy].
+  ///
+  /// When `false`, [headingAccuracy] is `0.0` as a placeholder. Mirrors
+  /// `Location.hasBearingAccuracy()` on Android (API 26+).
+  final bool hasHeadingAccuracy;
+
+  /// Whether the platform actually reported [speed].
+  ///
+  /// When `false`, [speed] is `0.0` as a placeholder, which is also a valid
+  /// stationary reading. Mirrors `Location.hasSpeed()` on Android.
+  final bool hasSpeed;
+
+  /// Whether the platform actually reported [speedAccuracy].
+  ///
+  /// When `false`, [speedAccuracy] is `0.0` as a placeholder. Mirrors
+  /// `Location.hasSpeedAccuracy()` on Android (API 26+).
+  final bool hasSpeedAccuracy;
+
   @override
   bool operator ==(Object other) {
     var areEqual = other is Position &&
@@ -116,7 +170,14 @@ class Position {
         other.speed == speed &&
         other.speedAccuracy == speedAccuracy &&
         other.timestamp == timestamp &&
-        other.isMocked == isMocked;
+        other.isMocked == isMocked &&
+        other.hasAccuracy == hasAccuracy &&
+        other.hasAltitude == hasAltitude &&
+        other.hasAltitudeAccuracy == hasAltitudeAccuracy &&
+        other.hasHeading == hasHeading &&
+        other.hasHeadingAccuracy == hasHeadingAccuracy &&
+        other.hasSpeed == hasSpeed &&
+        other.hasSpeedAccuracy == hasSpeedAccuracy;
 
     return areEqual;
   }
@@ -134,7 +195,14 @@ class Position {
       speed.hashCode ^
       speedAccuracy.hashCode ^
       timestamp.hashCode ^
-      isMocked.hashCode;
+      isMocked.hashCode ^
+      hasAccuracy.hashCode ^
+      hasAltitude.hashCode ^
+      hasAltitudeAccuracy.hashCode ^
+      hasHeading.hashCode ^
+      hasHeadingAccuracy.hashCode ^
+      hasSpeed.hashCode ^
+      hasSpeedAccuracy.hashCode;
 
   @override
   String toString() {
@@ -177,6 +245,24 @@ class Position {
       speed: _toDouble(positionMap['speed']),
       speedAccuracy: _toDouble(positionMap['speed_accuracy']),
       isMocked: positionMap['is_mocked'] ?? false,
+      // A platform that could not measure a value omits its key — see
+      // `LocationMapper.toHashMap` on Android, which guards every optional
+      // field with the platform's own predicate. `_toDouble` substitutes 0.0
+      // for the missing value; these flags record that nothing measured it.
+      //
+      // `toJson` always writes the numeric keys, so on a round trip key
+      // presence alone would report a measurement that never happened. The
+      // explicit `has_*` key therefore wins when it is present.
+      hasAccuracy: _presence(positionMap, 'has_accuracy', 'accuracy'),
+      hasAltitude: _presence(positionMap, 'has_altitude', 'altitude'),
+      hasAltitudeAccuracy:
+          _presence(positionMap, 'has_altitude_accuracy', 'altitude_accuracy'),
+      hasHeading: _presence(positionMap, 'has_heading', 'heading'),
+      hasHeadingAccuracy:
+          _presence(positionMap, 'has_heading_accuracy', 'heading_accuracy'),
+      hasSpeed: _presence(positionMap, 'has_speed', 'speed'),
+      hasSpeedAccuracy:
+          _presence(positionMap, 'has_speed_accuracy', 'speed_accuracy'),
     );
   }
 
@@ -195,7 +281,28 @@ class Position {
         'speed': speed,
         'speed_accuracy': speedAccuracy,
         'is_mocked': isMocked,
+        'has_accuracy': hasAccuracy,
+        'has_altitude': hasAltitude,
+        'has_altitude_accuracy': hasAltitudeAccuracy,
+        'has_heading': hasHeading,
+        'has_heading_accuracy': hasHeadingAccuracy,
+        'has_speed': hasSpeed,
+        'has_speed_accuracy': hasSpeedAccuracy,
       };
+
+  /// Whether [map] carries a measurement for a field.
+  ///
+  /// Prefers the explicit `has_*` key when the map carries one (a `toJson`
+  /// round trip), and otherwise falls back to the presence of the value key
+  /// itself (a platform-channel message, where an unmeasured field is omitted).
+  static bool _presence(
+      Map<dynamic, dynamic> map, String flagKey, String valueKey) {
+    final flag = map[flagKey];
+    if (flag is bool) {
+      return flag;
+    }
+    return map.containsKey(valueKey) && map[valueKey] != null;
+  }
 
   static double _toDouble(dynamic value) {
     if (value == null) {
