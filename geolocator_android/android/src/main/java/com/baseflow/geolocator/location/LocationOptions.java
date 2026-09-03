@@ -9,24 +9,31 @@ public class LocationOptions {
   private final long distanceFilter;
   private final long timeInterval;
   private final boolean useMSLAltitude;
+  private final boolean forceGpsProvider;
 
   private LocationOptions(
-      LocationAccuracy accuracy, long distanceFilter, long timeInterval, boolean useMSLAltitude) {
+      LocationAccuracy accuracy,
+      long distanceFilter,
+      long timeInterval,
+      boolean useMSLAltitude,
+      boolean forceGpsProvider) {
     this.accuracy = accuracy;
     this.distanceFilter = distanceFilter;
     this.timeInterval = timeInterval;
     this.useMSLAltitude = useMSLAltitude;
+    this.forceGpsProvider = forceGpsProvider;
   }
 
   public static LocationOptions parseArguments(Map<String, Object> arguments) {
     if (arguments == null) {
-      return new LocationOptions(LocationAccuracy.best, 0, 5000, false);
+      return new LocationOptions(LocationAccuracy.best, 0, 5000, false, false);
     }
 
     final Integer accuracy = (Integer) arguments.get("accuracy");
     final Integer distanceFilter = (Integer) arguments.get("distanceFilter");
     final Integer timeInterval = (Integer) arguments.get("timeInterval");
     final Boolean useMSLAltitude = (Boolean) arguments.get("useMSLAltitude");
+    final Boolean forceGpsProvider = (Boolean) arguments.get("forceGpsProvider");
 
     LocationAccuracy locationAccuracy = LocationAccuracy.best;
 
@@ -57,7 +64,8 @@ public class LocationOptions {
         locationAccuracy,
         distanceFilter != null ? distanceFilter : 0,
         timeInterval != null ? timeInterval : 5000,
-        useMSLAltitude != null && useMSLAltitude);
+        useMSLAltitude != null && useMSLAltitude,
+        forceGpsProvider != null && forceGpsProvider);
   }
 
   public LocationAccuracy getAccuracy() {
@@ -74,5 +82,10 @@ public class LocationOptions {
 
   public boolean isUseMSLAltitude() {
     return useMSLAltitude;
+  }
+
+  /** Returns whether the GPS provider should be preferred over other enabled providers. */
+  public boolean isForceGpsProvider() {
+    return forceGpsProvider;
   }
 }

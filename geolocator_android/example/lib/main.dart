@@ -294,11 +294,20 @@ class _GeolocatorWidgetState extends State<GeolocatorWidget> {
     }
 
     if (_positionStreamSubscription == null) {
+      final accuracyStatus = await geolocatorAndroid.getLocationAccuracy();
+      if (accuracyStatus != LocationAccuracyStatus.precise) {
+        _updatePositionList(
+          _PositionItemType.log,
+          'Precise location permission is required for reliable GPS results.',
+        );
+      }
+
       final androidSettings = AndroidSettings(
         accuracy: LocationAccuracy.best,
         distanceFilter: 10,
         intervalDuration: const Duration(seconds: 1),
         forceLocationManager: false,
+        forceGpsProvider: true,
         useMSLAltitude: true,
         foregroundNotificationConfig: const ForegroundNotificationConfig(
           // Explain to the user why we are showing this notification.
@@ -319,9 +328,12 @@ class _GeolocatorWidgetState extends State<GeolocatorWidget> {
         _positionStreamSubscription = null;
       }).listen((position) {
         debugPrint(position.altitude.toString());
+        final accuracy = position.hasAccuracy
+            ? '${position.accuracy.toStringAsFixed(1)} m'
+            : 'unavailable';
         _updatePositionList(
           _PositionItemType.position,
-          position.toString(),
+          '${position.toString()}, Accuracy: $accuracy',
         );
       });
       _positionStreamSubscription?.pause();

@@ -73,7 +73,9 @@ public class GeolocationManager
       Context context,
       boolean forceAndroidLocationManager,
       @Nullable LocationOptions locationOptions) {
-    if (forceAndroidLocationManager) {
+    // A concrete Android provider can only be selected through LocationManager.
+    if (forceAndroidLocationManager
+        || (locationOptions != null && locationOptions.isForceGpsProvider())) {
       return new LocationManagerClient(context, locationOptions);
     }
 

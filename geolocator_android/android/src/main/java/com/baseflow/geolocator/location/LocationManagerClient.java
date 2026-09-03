@@ -75,25 +75,32 @@ class LocationManagerClient implements LocationClient, LocationListenerCompat {
     return false;
   }
 
-  private static @Nullable String determineProvider(
+  /** Selects an enabled provider, preferring direct GPS when requested. */
+  static @Nullable String determineProvider(
       @NonNull LocationManager locationManager,
-      @NonNull LocationAccuracy accuracy) {
+      @NonNull LocationAccuracy accuracy,
+      boolean forceGpsProvider) {
 
-      final List<String> enabledProviders = locationManager.getProviders(true);
+    final List<String> enabledProviders = locationManager.getProviders(true);
 
-      if (accuracy == LocationAccuracy.lowest) {
-          return LocationManager.PASSIVE_PROVIDER;
-      } else if (enabledProviders.contains(LocationManager.FUSED_PROVIDER) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-          return LocationManager.FUSED_PROVIDER;
-      } else if (enabledProviders.contains(LocationManager.GPS_PROVIDER)) {
-          return LocationManager.GPS_PROVIDER;
-      } else if (enabledProviders.contains(LocationManager.NETWORK_PROVIDER)) {
-          return LocationManager.NETWORK_PROVIDER;
-      } else if (!enabledProviders.isEmpty()){
-          return enabledProviders.get(0);
-      } else {
-          return null;
-      }
+    // Preserve the existing provider selection as the fallback when GPS is
+    // disabled or unavailable.
+    if (forceGpsProvider && enabledProviders.contains(LocationManager.GPS_PROVIDER)) {
+      return LocationManager.GPS_PROVIDER;
+    } else if (accuracy == LocationAccuracy.lowest) {
+      return LocationManager.PASSIVE_PROVIDER;
+    } else if (enabledProviders.contains(LocationManager.FUSED_PROVIDER)
+        && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      return LocationManager.FUSED_PROVIDER;
+    } else if (enabledProviders.contains(LocationManager.GPS_PROVIDER)) {
+      return LocationManager.GPS_PROVIDER;
+    } else if (enabledProviders.contains(LocationManager.NETWORK_PROVIDER)) {
+      return LocationManager.NETWORK_PROVIDER;
+    } else if (!enabledProviders.isEmpty()) {
+      return enabledProviders.get(0);
+    } else {
+      return null;
+    }
   }
 
   private static @LocationRequestCompat.Quality int accuracyToQuality(@NonNull LocationAccuracy accuracy) {
@@ -172,7 +179,10 @@ class LocationManagerClient implements LocationClient, LocationListenerCompat {
       quality = accuracyToQuality(accuracy);
     }
 
-    this.currentLocationProvider = determineProvider(this.locationManager, accuracy);
+    final boolean forceGpsProvider =
+        this.locationOptions != null && this.locationOptions.isForceGpsProvider();
+    this.currentLocationProvider =
+        determineProvider(this.locationManager, accuracy, forceGpsProvider);
 
     if (this.currentLocationProvider == null) {
       errorCallback.onError(ErrorCodes.locationServicesDisabled);

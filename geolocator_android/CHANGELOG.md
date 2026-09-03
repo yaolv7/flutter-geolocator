@@ -1,5 +1,6 @@
 ## 5.0.3
 
+- Adds `forceGpsProvider` to explicitly prefer GPS when using Android's LocationManager.
 - Updates `flutter_lints` to version 6.0.0.
 - Updates Android build tools to version 9.0.1.
 

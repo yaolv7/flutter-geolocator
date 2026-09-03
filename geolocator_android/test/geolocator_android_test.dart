@@ -648,6 +648,38 @@ void main() {
         ]);
       });
 
+      test('Should pass forced GPS provider settings', () async {
+        // Arrange
+        final channel = MethodChannelMock(
+          channelName: 'flutter.baseflow.com/geolocator_android',
+          methods: [
+            MethodMock(
+              methodName: 'getCurrentPosition',
+              result: mockPosition.toJson(),
+            ),
+          ],
+        );
+        const requestId = 'forcedGpsRequest';
+        final locationSettings = AndroidSettings(forceGpsProvider: true);
+
+        // Act
+        await GeolocatorAndroid().getCurrentPosition(
+          locationSettings: locationSettings,
+          requestId: requestId,
+        );
+
+        // Assert
+        expect(channel.log, <Matcher>[
+          isMethodCall(
+            'getCurrentPosition',
+            arguments: {
+              ...locationSettings.toJson(),
+              'requestId': requestId,
+            },
+          ),
+        ]);
+      });
+
       test('Should receive a position for each call', () async {
         // Arrange
         final channel = MethodChannelMock(
@@ -828,6 +860,29 @@ void main() {
 
     group('getPositionStream: When requesting a stream of position updates',
         () {
+      test('Should pass forced GPS provider settings', () async {
+        // Arrange
+        final channel = EventChannelMock(
+          channelName: 'flutter.baseflow.com/geolocator_updates_android',
+          stream: Stream.value(mockPosition.toJson()),
+        );
+        final locationSettings = AndroidSettings(forceGpsProvider: true);
+
+        // Act
+        await GeolocatorAndroid()
+            .getPositionStream(locationSettings: locationSettings)
+            .first;
+
+        // Assert
+        expect(
+          channel.log,
+          contains(isMethodCall(
+            'listen',
+            arguments: locationSettings.toJson(),
+          )),
+        );
+      });
+
       group('And requesting for position update multiple times', () {
         test('Should return the same stream', () {
           final plugin = GeolocatorAndroid();
@@ -1432,6 +1487,13 @@ void main() {
     });
 
     group('jsonSerialization: When serializing to json', () {
+      test('Should disable forced GPS provider by default', () {
+        final settings = AndroidSettings();
+
+        expect(settings.forceGpsProvider, isFalse);
+        expect(settings.toJson()['forceGpsProvider'], isFalse);
+      });
+
       test('Should produce valid map with all the settings when calling toJson',
           () async {
         // Arrange
@@ -1439,6 +1501,7 @@ void main() {
           accuracy: LocationAccuracy.best,
           distanceFilter: 5,
           forceLocationManager: false,
+          forceGpsProvider: true,
           intervalDuration: const Duration(seconds: 1),
           timeLimit: const Duration(seconds: 1),
           useMSLAltitude: false,
@@ -1471,6 +1534,10 @@ void main() {
         expect(
           jsonMap['forceLocationManager'],
           settings.forceLocationManager,
+        );
+        expect(
+          jsonMap['forceGpsProvider'],
+          settings.forceGpsProvider,
         );
         expect(
           jsonMap['timeInterval'],
@@ -1511,7 +1578,7 @@ void main() {
         );
         expect(
           jsonMap['foregroundNotificationConfig']['color'],
-          settings.foregroundNotificationConfig!.color!.toARGB32,
+          settings.foregroundNotificationConfig!.color!.toARGB32(),
         );
       });
 

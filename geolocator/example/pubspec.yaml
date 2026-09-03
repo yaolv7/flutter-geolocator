@@ -35,6 +35,11 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
 
+# Keep this example compatible with its current Android Gradle Plugin. Newer
+# releases require AGP 8.9.1 through their AndroidX dependencies.
+dependency_overrides:
+  url_launcher_android: 6.3.25
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

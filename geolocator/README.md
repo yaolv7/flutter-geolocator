@@ -304,7 +304,7 @@ if (defaultTargetPlatform == TargetPlatform.android) {
   locationSettings = AndroidSettings(
       accuracy: LocationAccuracy.high,
       distanceFilter: 100,
-      forceLocationManager: true,
+      forceGpsProvider: true,
       intervalDuration: const Duration(seconds: 10),
       //(Optional) Set foreground notification config to keep the app alive 
       //when going to the background
@@ -341,11 +341,26 @@ if (defaultTargetPlatform == TargetPlatform.android) {
 Position position = await Geolocator.getCurrentPosition(locationSettings: locationSettings);
 
 // supply location settings to getPositionStream
+// Choose this threshold according to your product requirements.
+const double maximumAcceptedAccuracyInMeters = 50;
 StreamSubscription<Position> positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-        (Position? position) {
-      print(position == null ? 'Unknown' : '${position.latitude.toString()}, ${position.longitude.toString()}');
+    (Position? position) {
+        if (position == null ||
+            !position.hasAccuracy ||
+            position.accuracy > maximumAcceptedAccuracyInMeters) {
+          return;
+        }
+        print('${position.latitude.toString()}, ${position.longitude.toString()}');
     });
 ```
+
+Setting `forceGpsProvider` to `true` automatically uses Android's
+`LocationManager` and selects `GPS_PROVIDER` when it is enabled. If GPS is not
+available when positioning starts, the plugin falls back to its normal
+`LocationManager` provider selection. Direct GPS can still return an imprecise
+first fix or degrade under weak satellite reception, so applications should
+also require precise location permission and validate `Position.accuracy`
+against a threshold appropriate for their use case.
 
 #### Location accuracy (Android and iOS 14+ only)
 

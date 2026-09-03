@@ -9,8 +9,10 @@ class AndroidSettings extends LocationSettings {
   ///
   /// The following default values are used:
   /// - forceLocationManager: false
+  /// - forceGpsProvider: false
   AndroidSettings({
     this.forceLocationManager = false,
+    this.forceGpsProvider = false,
     super.accuracy,
     super.distanceFilter,
     this.intervalDuration,
@@ -39,6 +41,14 @@ class AndroidSettings extends LocationSettings {
   /// }
   /// ```
   final bool forceLocationManager;
+
+  /// Prioritizes the Android `LocationManager.GPS_PROVIDER` when obtaining
+  /// positions.
+  ///
+  /// Enabling this setting automatically uses the Android LocationManager. If
+  /// the GPS provider is unavailable when positioning starts, Geolocator falls
+  /// back to its default LocationManager provider selection.
+  final bool forceGpsProvider;
 
   /// The desired interval for active location updates.
   ///
@@ -76,6 +86,7 @@ class AndroidSettings extends LocationSettings {
     return super.toJson()
       ..addAll({
         'forceLocationManager': forceLocationManager,
+        'forceGpsProvider': forceGpsProvider,
         'timeInterval': intervalDuration?.inMilliseconds,
         'foregroundNotificationConfig': foregroundNotificationConfig?.toJson(),
         'useMSLAltitude': useMSLAltitude,
